@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import (
+
+)
+import (
+	"auto_rent/fetch_house"
+	"fmt"
+)
 
 func main() {
-	fmt.Println("hello")
+	cityMap, _ := fetchHouse.GetAllSite("http://www.ganji.com/index.htm")
+	fmt.Println(cityMap)
 }
