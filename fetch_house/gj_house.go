@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 	"fmt"
-	"time"
+	//	"time"
 )
 
 var (
@@ -25,26 +25,40 @@ func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
 		return errors.New("Failed to get all city")
 	}
 
-	chanHouses := make(chan []*House, len(*cityMap))
+	chanHouses := make(chan []*House)
+	chanUrl := make(chan string)
+	go gj.RoutineAreaHouse(chanUrl, chanHouses)
 	for _, url := range *cityMap {
-		go gj.GetAreaHouse(url + TypeUrl, chanHouses)
-	}
+		chanUrl <- url
+		/*	select {
+			case houses := <-chanHouses:
+				fmt.Printf("Recv Url: %s\n", url)
+				chanHouse <- houses
+			case <-time.After(30 * time.Second):
+				fmt.Printf("Url:%s timeout\n", url)
+			}*/
+		houses, ok := <-chanHouses
+		if !ok {
+			fmt.Println("channel close")
+			continue
+		}
 
-	index := 0
-	for _, url := range *cityMap {
-		select {
-		case houses := <-chanHouses:
-			index ++
-			fmt.Printf("End url: %s\n", url)
+		if houses != nil {
+			fmt.Printf("recv url :%s\n", url)
 			chanHouse <- houses
-			fmt.Println(len(*cityMap), index, url)
-		case <-time.After(30 * time.Second):
-			fmt.Printf("Url:%s timeout\n", url)
 		}
 	}
 
 	close(chanHouse)
 	return nil
+}
+
+func (gj GJHouse) RoutineAreaHouse(chanUrl <-chan string, chanHouses chan <- []*House) {
+	for {
+		url := <-chanUrl
+
+		gj.GetAreaHouse(url, chanHouse)
+	}
 }
 
 func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
