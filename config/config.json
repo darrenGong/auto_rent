@@ -1,5 +1,12 @@
 {
-  "Url": "http://www.ganji.com/index.htm",
-  "City": "sh",
-  "Area": "minhang"
+  "PlatUrl": {
+    "GJ": {
+      "Url": "http://www.ganji.com/index.htm",
+      "AreaUrl": "http://%s.ganji.com/fang1/"
+    },
+    "58CITY": {
+      "Url": "http://www.58.com/changecity.aspx",
+      "AreaUrl": "http://%s.58.com/zufang/"
+    }
+  }
 }

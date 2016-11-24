@@ -1,14 +1,24 @@
 package main
 
-import (
 
-)
 import (
 	"auto_rent/fetch_house"
+	"flag"
+	"log"
 	"fmt"
 )
 
+var (
+	configPath = flag.String("-c", "F:\\go-dev\\src\\auto_rent\\config\\config.json", "Configuration, json format")
+)
+
 func main() {
-	cityMap, _ := fetchHouse.GetAllSite("http://www.ganji.com/index.htm")
-	fmt.Println(cityMap)
+	flag.Parse()
+
+	Config := fetchHouse.Config{}
+	if err := fetchHouse.ParseConfig(*configPath, &Config); err != nil {
+		log.Fatalf("Failed to parse config[%s]", *configPath)
+	}
+	fmt.Println(Config)
+	fetchHouse.FetchHouse(&Config)
 }

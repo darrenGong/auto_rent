@@ -9,20 +9,20 @@ import (
 )
 
 var (
-	TIMEOUT = 60 * time.Second
+	TIMEOUT = 10 * time.Second
 
 	STATUS = 200
-
-	GJURL = "http://www.ganji.com/index.htm"
-	GJCITYURL = "http://%s.ganji.com/fang1/"
-	CITY58URL = "http://www.58.com/changecity.aspx"
-	CITY2URL = "http://%s.58.com/zufang/"
 )
 
 const (
-	ALLRENT = iota    //整租
-	TOGETHERRENT    //合租
-	SHORTRENT        //短租
+	ALLRENT = iota    	//整租
+	TOGETHERRENT    	//合租
+	SHORTRENT        	//短租
+)
+
+const (
+	GJPLAT = "GJ"            //赶集
+	CITY58PLAT = "58CITY"        //58同城
 )
 
 type Price struct {
@@ -31,7 +31,7 @@ type Price struct {
 }
 
 type Filter struct {
-	PlatType	uint32
+	PlatType    uint32
 	City        string
 	Area        string
 	Price       Price
@@ -42,7 +42,7 @@ type Filter struct {
 
 type House struct {
 	Id          string
-	DataTime    time.Duration
+	DataTime    string
 	HasImage    bool
 	Name        string
 	Price       string
@@ -50,80 +50,24 @@ type House struct {
 	Location    string
 	HouseType   string // 三室二厅二卫
 	Orientation string // 朝向
-	Way         uint32 // 整租
+	Way         string // 整租
 }
 
-func GetUrl(platType uint32) string {
+type HouseInterface interface {
+	GetHouse(chanHouse chan<- []*House) error
+}
+
+func GetHouseInterface(platType string, webUrl *WebUrl) (HouseInterface, error) {
 	switch platType {
-	case 10001:
-		return GJCITYURL
-	case 10002:
-		return CITY2URL
+	case GJPLAT:
+		return GJHouse{Url: webUrl.Url,
+						AreaUrl: webUrl.AreaUrl}, nil
+	case CITY58PLAT:
+		return CITY58House{Url: webUrl.Url,
+						AreaUrl: webUrl.AreaUrl}, nil
 	}
 
-	return GJCITYURL
-}
-
-func GetPriceType(price float32) string {
-	price = uint32(price)
-	switch price {
-	case 800...1500:
-		return "p2"
-	case 1500...2000:
-		return "p3"
-	case 2000...3000:
-		return "p4"
-	case 3000...5000:
-		return "p5"
-	case 5000...6500:
-		return "p6"
-	case 6500...8000:
-		return "p7"
-	case 8000...1000000000:
-		return "p8"
-	}
-
-	return "p1"	//800以下
-}
-
-func GetOrientation(orientation uint32) string {
-	switch orientation {
-	case 2:	//south
-		return "j2"
-	case 3: //west
-		return "j3"
-	case 4:	//north
-		return "j4"
-	case 5:	//sn
-		return "j5"
-	case 6:	//ew
-		return "j6"
-	}
-	return "j1"	//1 east
-}
-
-func GetRentWay(way uint32) string {
-	switch way {
-	case 2:	//合租
-		return "a3"
-	}
-	return "m1"	//1 整租
-}
-
-func GetHouseType(houseType uint32) string {
-	switch houseType {
-	case 2:
-		return "h2"
-	case 3:
-		return "h3"
-	case 4:
-		return "h4"
-	case 5:
-		return "h5"
-	case 6:	//五室以上
-		return "h6"
-	}
-	return "h1"
+	return nil, errors.New("Invalid plat type: " + platType)
 }
 
 func ApiGet(url string) (goquery.Nodes, error) {

@@ -1,14 +1,43 @@
 package fetchHouse
 
-var (
-	areaUrl = "%s/"
-	WayUrl = "%s"
-	PriceUrl = "%s"			// combine	example: m1p1/
-	HouseTypeUrl = "%s"		// combine HouseTypeUrl WayUrl PriceUrl/
-	OrientationUrl = "%s"	// combine HouseTypeUrl OrientationUrl WayUrl PriceUrl/
+import (
+	"uframework/log"
+	"fmt"
 )
 
-func (filter *Filter) FetchHouse() ([]*House, error) {
-	url := GetUrl(filter.PlatType)
-	return nil, nil
+var (
+	TotalMaxNum = 1024 * 10
+
+	chanHouse   = make(chan []*House)
+)
+
+func FetchHouse(Config *Config) ([]*House, error) {
+	for key, value := range Config.PlatUrl {
+		houseInterface, err := GetHouseInterface(key, &value)
+		if err != nil {
+			uflog.ERRORF("Failed to get house interface [type:%s]", key)
+			return nil, err
+		}
+		go houseInterface.GetHouse(chanHouse)
+	}
+
+	houseArray := make([]*House, TotalMaxNum)
+	for {
+		select {
+		case houses, ok := <-chanHouse:
+			if !ok {
+				uflog.WARN("All cities data have got")
+				break
+			}
+			for _, house := range houses {
+				houseArray = append(houseArray, house)
+			}
+		}
+	}
+
+	fmt.Println("Done ... ")
+	for _, house := range houseArray {
+		fmt.Println(house)
+	}
+	return houseArray, nil
 }
