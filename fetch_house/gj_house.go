@@ -30,21 +30,8 @@ func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
 	go gj.RoutineAreaHouse(chanUrl, chanHouses)
 	for _, url := range *cityMap {
 		chanUrl <- url
-		/*	select {
-			case houses := <-chanHouses:
-				fmt.Printf("Recv Url: %s\n", url)
-				chanHouse <- houses
-			case <-time.After(30 * time.Second):
-				fmt.Printf("Url:%s timeout\n", url)
-			}*/
 		houses, ok := <-chanHouses
-		if !ok {
-			fmt.Println("channel close")
-			continue
-		}
-
-		if houses != nil {
-			fmt.Printf("recv url :%s\n", url)
+		if ok && houses != nil {
 			chanHouse <- houses
 		}
 	}
@@ -57,7 +44,7 @@ func (gj GJHouse) RoutineAreaHouse(chanUrl <-chan string, chanHouses chan <- []*
 	for {
 		url := <-chanUrl
 
-		gj.GetAreaHouse(url, chanHouse)
+		gj.GetAreaHouse(url, chanHouses)
 	}
 }
 
@@ -66,6 +53,7 @@ func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
 	nodes, err := ApiGet(url)
 	if err != nil {
 		uflog.ERRORF("Failed to get area house[url:%s]", url)
+		chanHouses <- nil
 		return
 	}
 	childNodes := nodes.Find("div")
