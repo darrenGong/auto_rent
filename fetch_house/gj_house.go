@@ -29,7 +29,7 @@ func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
 	chanUrl := make(chan string)
 	go gj.RoutineAreaHouse(chanUrl, chanHouses)
 	for _, url := range *cityMap {
-		chanUrl <- url
+		chanUrl <- url + TypeUrl
 		houses, ok := <-chanHouses
 		if ok && houses != nil {
 			chanHouse <- houses
