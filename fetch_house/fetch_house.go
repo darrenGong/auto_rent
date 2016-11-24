@@ -8,7 +8,7 @@ import (
 var (
 	TotalMaxNum = 1024 * 10
 
-	chanHouse   = make(chan []*House)
+	chanHouse   = make(chan []*House, TotalMaxNum)
 )
 
 func FetchHouse(Config *Config) ([]*House, error) {
