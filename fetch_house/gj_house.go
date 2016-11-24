@@ -1,16 +1,16 @@
 package fetchHouse
 
 import (
-	"uframework/log"
 	"errors"
 	"strings"
-	"fmt"
+	"time"
+	"uframework/log"
 	//	"time"
 )
 
 var (
 	TypeUrl = "fang1/"
-	MaxNum = 20
+	MaxNum  = 20
 )
 
 type GJHouse struct {
@@ -18,7 +18,7 @@ type GJHouse struct {
 	AreaUrl string
 }
 
-func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
+func (gj GJHouse) GetHouse(chanHouse chan<- []*House) error {
 	cityMap, err := GetAllSite(gj.Url)
 	if err != nil {
 		uflog.ERRORF("Failed to get all city[url:%s]", gj.Url)
@@ -26,13 +26,16 @@ func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
 	}
 
 	chanHouses := make(chan []*House)
-	chanUrl := make(chan string)
-	go gj.RoutineAreaHouse(chanUrl, chanHouses)
 	for _, url := range *cityMap {
-		chanUrl <- url + TypeUrl
-		houses, ok := <-chanHouses
-		if ok && houses != nil {
+		go gj.GetAreaHouse(url+TypeUrl, chanHouses)
+	}
+
+	for _, url := range *cityMap {
+		select {
+		case houses := <-chanHouses:
 			chanHouse <- houses
+		case <-time.After(30 * time.Second):
+			uflog.ERRORF("Url:%s timeout", url)
 		}
 	}
 
@@ -40,16 +43,8 @@ func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
 	return nil
 }
 
-func (gj GJHouse) RoutineAreaHouse(chanUrl <-chan string, chanHouses chan <- []*House) {
-	for {
-		url := <-chanUrl
-
-		gj.GetAreaHouse(url, chanHouses)
-	}
-}
-
-func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
-	fmt.Printf("Start url: %s\n", url)
+func (gj GJHouse) GetAreaHouse(url string, chanHouses chan<- []*House) {
+	uflog.DEBUGF("Start url: %s\n", url)
 	nodes, err := ApiGet(url)
 	if err != nil {
 		uflog.ERRORF("Failed to get area house[url:%s]", url)
@@ -97,7 +92,6 @@ func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
 		houses = append(houses, house)
 	}
 
-	fmt.Printf("End Url:%s\n", url)
 	chanHouses <- houses
-	fmt.Printf("Transfer Url:%s\n", url)
+	uflog.DEBUGF("End url:%s\n", url)
 }
