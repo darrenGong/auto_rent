@@ -1,15 +1,14 @@
 package main
 
-
 import (
 	"auto_rent/fetch_house"
 	"flag"
-	"log"
 	"fmt"
+	"log"
 )
 
 var (
-	configPath = flag.String("-c", "F:\\go-dev\\src\\auto_rent\\config\\config.json", "Configuration, json format")
+	configPath = flag.String("c", "F:\\go-dev\\src\\auto_rent\\config\\config.json", "Configuration, json format")
 )
 
 func main() {
