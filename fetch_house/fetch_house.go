@@ -8,7 +8,7 @@ import (
 var (
 	TotalMaxNum = 1024 * 10
 
-	chanHouse   = make(chan []*House, TotalMaxNum)
+	chanHouse = make(chan []*House, TotalMaxNum)
 )
 
 func FetchHouse(Config *Config) ([]*House, error) {
@@ -23,15 +23,13 @@ func FetchHouse(Config *Config) ([]*House, error) {
 
 	houseArray := make([]*House, TotalMaxNum)
 	for {
-		select {
-		case houses, ok := <-chanHouse:
-			if !ok {
-				uflog.WARN("All cities data have got")
-				break
-			}
-			for _, house := range houses {
-				houseArray = append(houseArray, house)
-			}
+		houses, ok := <-chanHouse
+		if !ok {
+			uflog.WARN("All cities data have got")
+			break
+		}
+		for _, house := range houses {
+			houseArray = append(houseArray, house)
 		}
 	}
 
