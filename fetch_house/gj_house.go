@@ -81,7 +81,14 @@ func (gj GJHouse) GetAreaHouse(url string, chanHouses chan<- []*House) {
 		ddNodes = divNodes.Find(".address")
 		spanNodes = ddNodes.Find("span")
 		aNodes = spanNodes.Find("a")
-		house.Location = aNodes.Eq(0).Text() + "|" + aNodes.Eq(2).Text()
+		locationList := strings.Split(aNodes.Eq(0).Attr("href"), "/")
+		if len(locationList) >= 3 {
+			house.Location = locationList[2]
+		}
+		communityList := strings.Split(aNodes.Eq(2).Attr("href"), "/")
+		if len(communityList) >= 3 {
+			house.Location += "|" + communityList[2]
+		}
 
 		ddNodes = divNodes.Find(".info")
 		priceNodes := ddNodes.Find(".price")

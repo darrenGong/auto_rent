@@ -8,5 +8,6 @@
       "Url": "http://www.58.com/changecity.aspx",
       "AreaUrl": "http://%s.58.com/zufang/"
     }
-  }
+  },
+  "ServiceDir": "F:\\go-dev\\src\\auto_rent\\etc\\"
 }

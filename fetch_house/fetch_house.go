@@ -21,7 +21,7 @@ func FetchHouse(Config *Config) ([]*House, error) {
 		go houseInterface.GetHouse(chanHouse)
 	}
 
-	houseArray := make([]*House, TotalMaxNum / 2, TotalMaxNum)
+	houseArray := make([]*House, 0, TotalMaxNum)
 	for {
 		houses, ok := <-chanHouse
 		if !ok {

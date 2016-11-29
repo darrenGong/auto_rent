@@ -1,0 +1,16 @@
+{
+  "id": "House_5JxgtL",
+  "username": "xiaotao",
+  "email": "darren_gong@163.com",
+  "number": "13167236093",
+  "platform": 1,
+  "city": "sh",
+  "area": "minhang",
+  "community": "dongyuanxintiandi",
+  "house": {
+    "price": 3,
+    "type": 2,
+    "orientation": 1,
+    "way": 0
+  }
+}

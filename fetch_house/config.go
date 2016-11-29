@@ -13,9 +13,9 @@ type WebUrl struct {
 }
 
 type Config struct {
-	PlatUrl	map[string]WebUrl
+	PlatUrl    map[string]WebUrl
+	ServiceDir string
 }
-
 
 func ParseConfig(path string, config *Config) error {
 	bytes, err := ioutil.ReadFile(path)
