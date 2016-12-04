@@ -10,6 +10,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"auto_rent/fetch_house"
 	"forward_port/config"
+	"fmt"
+	"strconv"
 )
 
 type SimpleHouse struct {
@@ -27,7 +29,7 @@ type Service struct {
 	Platform  uint32
 	City      string
 	Area      string
-	Community string
+	Community string // 社区
 	SimpleHouse
 }
 
@@ -39,8 +41,8 @@ var (
 var sm sync.Mutex
 
 type Filter struct {
-	IdServices map[string]*Service	// key: Id
-
+	IdServices   map[string]*Service            // key: Id
+	AreaServices map[string]map[string]*Service // key: Area subKey: Id
 }
 
 func (f *Filter) Run(config *fetchHouse.Config) error {
@@ -50,18 +52,24 @@ func (f *Filter) Run(config *fetchHouse.Config) error {
 	defer close(quitChan)
 
 	// filter houses
-	houseMap, err := fetchHouse.FetchHouse(config)
+	areaHouseMap, err := fetchHouse.FetchHouse(config)
 	if err != nil {
 		uflog.ERRORF("Failed to fetch house[err:%s]", err.Error())
 	}
 	return nil
 }
 
-func (f *Filter) FilterHouses(houses *fetchHouse.House) error {
-	return nil
-}
-
-func (f *Filter) HandleHouse(house *fetchHouse.House) error {
+func (f *Filter) HandleService(areaHouseMap map[string][]*fetchHouse.House) error {
+	for area, serviceMap := range f.AreaServices {
+		houses := areaHouseMap[area]
+		if houses == nil {
+			uflog.ERRORF("Area[%s] have not info on rent house", area)
+		}
+		if err := AnalysisData(serviceMap, houses); err != nil {
+			uflog.ERRORF("Failed to analysis rent house and services, err:%s", err.Error())
+			continue
+		}
+	}
 	return nil
 }
 
@@ -205,6 +213,7 @@ func (f *Filter) OnServiceCreate(service *Service) error {
 	defer sm.Unlock()
 
 	f.IdServices[service.Id] = service
+	f.AreaServices[service.Area] = f.IdServices
 	return nil
 }
 
@@ -213,6 +222,7 @@ func (f *Filter) OnServiceRemove(service *Service) error {
 	defer sm.Unlock()
 
 	delete(f.IdServices, service.Id)
+	delete(f.AreaServices[service.Area], service.Id)
 	return nil
 }
 
@@ -221,6 +231,7 @@ func (f *Filter) OnServiceChange(service *Service) error {
 	defer sm.Unlock()
 
 	f.IdServices[service.Id] = service
+	f.AreaServices[service.Area] = f.IdServices
 	return nil
 }
 
@@ -233,4 +244,50 @@ func (f *Filter) IsValidFilePath(fPath string) bool {
 	}
 
 	return false
+}
+
+func AnalysisData(idServiceMap map[string]*Service, houses []*fetchHouse.House) error {
+	for _, service := range idServiceMap {
+		housesFormat, err := GetValidHouse(service, houses)
+		if err != nil {
+			uflog.ERRORF("Failed to get valid house[err:%s]", err)
+			continue
+		}
+
+		// send data to target
+		SendHouseToTarget(service, housesFormat)
+	}
+	return nil
+}
+
+func GetValidHouse(service *Service, houses []*fetchHouse.House) ([]string, error) {
+	for _, house := range houses {
+		houseFilter, err := GetPlatInterface(house.PlatType, service)
+		if err != nil {
+			uflog.ERRORF("Failed to get Plat interface[err:%s, platType:%s]",
+				err.Error(), house.PlatType)
+			continue
+		}
+
+		bValidPrice := houseFilter.ValidPrice(house, service.Price)
+		if !bValidPrice {
+			continue
+		}
+
+		bValidType := houseFilter.ValidType(house, service.Type)
+		if !bValidType {
+			continue
+		}
+
+
+
+	}
+	return nil, nil
+}
+
+func SendHouseToTarget(service *Service, houses []string) error {
+	for _, houseFormat := range houses {
+		fmt.Println("Have match data[%s]", houseFormat)
+	}
+	return nil
 }

@@ -65,6 +65,7 @@ func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
 	childNodes = childNodes.Find(".f-list-item dl")
 	for i := 0; i < childNodes.Length() && i < MaxNum; i++ {
 		house := new(House)
+		house.PlatType = GJPLAT
 
 		divNodes := childNodes.Eq(i)
 		dtNodes := divNodes.Find("dt")

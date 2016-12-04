@@ -52,6 +52,8 @@ type House struct {
 	HouseType   string // 三室二厅二卫
 	Orientation string // 朝向
 	Way         string // 整租
+
+	PlatType 	string
 }
 
 type AreaHouses struct {
