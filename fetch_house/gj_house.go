@@ -6,6 +6,7 @@ import (
 	"time"
 	"uframework/log"
 	//	"time"
+	"fmt"
 )
 
 var (
@@ -25,22 +26,20 @@ func (gj GJHouse) GetHouse(chanAreaHouse chan<- *AreaHouses) error {
 		return errors.New("Failed to get all city")
 	}
 
-	chanHouses := make([]chan *AreaHouses, len(*cityMap))
-	index := 0
+	fmt.Println(*cityMap)
+	chanHouse := make(chan *AreaHouses)
 	for _, url := range *cityMap {
-		uflog.DEBUGF("Get house info. url:%s, index:%d", url, index)
-		go gj.GetAreaHouse(url+TypeUrl, chanHouses[index])
-		index ++
+		go gj.GetAreaHouse(url+TypeUrl, chanHouse)
 	}
 
-	for index, areaHouse := range chanHouses {
+	for _, url := range *cityMap {
 		select {
-		case areaHouse := <-areaHouse:
+		case areaHouse := <-chanHouse:
 			if areaHouse != nil {
 				chanAreaHouse <- areaHouse
 			}
 		case <-time.After(30 * time.Second):
-			uflog.ERRORF("Get index:%d area timeout", index)
+			uflog.ERRORF("Get url:%s area timeout", url)
 		}
 	}
 
@@ -59,7 +58,7 @@ func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
 
 	areaHouse := &AreaHouses{
 		Area: GetUrlArea(url),
-		Houses: make([]*House, 1, MaxNum),
+		Houses: make([]*House, 0),
 	}
 
 	childNodes := nodes.Find("div")

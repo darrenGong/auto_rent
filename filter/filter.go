@@ -50,7 +50,7 @@ func (f *Filter) Run(config *fetchHouse.Config) error {
 	defer close(quitChan)
 
 	// filter houses
-	houses, err := fetchHouse.FetchHouse(config)
+	houseMap, err := fetchHouse.FetchHouse(config)
 	if err != nil {
 		uflog.ERRORF("Failed to fetch house[err:%s]", err.Error())
 	}

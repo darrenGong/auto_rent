@@ -20,6 +20,9 @@ func main() {
 	}
 	houseMaps, _ := fetchHouse.FetchHouse(&Config)
 	for area, houses := range houseMaps {
-		fmt.Println(area, houses)
+		fmt.Println(area)
+		for _, house := range houses {
+			fmt.Println(house)
+		}
 	}
 }
