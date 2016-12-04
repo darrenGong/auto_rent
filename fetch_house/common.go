@@ -6,6 +6,7 @@ import (
 	"uframework/log"
 	"auto_rent/http_request"
 	"errors"
+	"strings"
 )
 
 var (
@@ -53,8 +54,13 @@ type House struct {
 	Way         string // 整租
 }
 
+type AreaHouses struct {
+	Area   string
+	Houses []*House
+}
+
 type HouseInterface interface {
-	GetHouse(chanHouse chan<- []*House) error
+	GetHouse(chanAreaHouse chan<- *AreaHouses) error
 }
 
 func GetHouseInterface(platType string, webUrl *WebUrl) (HouseInterface, error) {
@@ -94,4 +100,28 @@ func ApiGet(url string) (goquery.Nodes, error) {
 	}
 
 	return nodes, nil
+}
+
+func GetValidUrl(url string) string {
+	if !strings.HasPrefix(url, "http://") {
+		return "http://" + url
+	}
+	return url
+}
+
+func GetUrlArea(url string) string {
+	url = GetValidUrl(url)
+	urls := strings.Split(url, ".")
+	if len(urls) != 3 {
+		uflog.ERRORF("Invalid url: %s", url)
+		return ""
+	}
+
+	preUrls := strings.Split(urls[0], "//")
+	if len(preUrls) != 2 {
+		uflog.ERRORF("Invalid url: %s", urls[0])
+		return ""
+	}
+
+	return preUrls[1]
 }

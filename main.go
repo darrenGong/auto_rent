@@ -18,6 +18,8 @@ func main() {
 	if err := fetchHouse.ParseConfig(*configPath, &Config); err != nil {
 		log.Fatalf("Failed to parse config[%s]", *configPath)
 	}
-	fmt.Println(Config)
-	fetchHouse.FetchHouse(&Config)
+	houseMaps, _ := fetchHouse.FetchHouse(&Config)
+	for area, houses := range houseMaps {
+		fmt.Println(area, houses)
+	}
 }

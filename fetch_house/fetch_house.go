@@ -1,42 +1,32 @@
 package fetchHouse
 
 import (
-	"fmt"
 	"uframework/log"
 )
 
 var (
-	TotalMaxNum = 1024 * 10
-
-	chanHouse = make(chan []*House, TotalMaxNum)
+	chanAreaHouse = make(chan *AreaHouses)
 )
 
-func FetchHouse(Config *Config) ([]*House, error) {
+func FetchHouse(Config *Config) (map[string][]*House, error) {
 	for key, value := range Config.PlatUrl {
 		houseInterface, err := GetHouseInterface(key, &value)
 		if err != nil {
 			uflog.ERRORF("Failed to get house interface [type:%s]", key)
 			return nil, err
 		}
-		go houseInterface.GetHouse(chanHouse)
+		go houseInterface.GetHouse(chanAreaHouse)
 	}
 
-	houseArray := make([]*House, 0, TotalMaxNum)
+	houseMaps := make(map[string][]*House)
 	for {
-		houses, ok := <-chanHouse
+		areaHouse, ok := <-chanAreaHouse
 		if !ok {
 			uflog.WARN("All cities data have got")
 			break
 		}
-		for _, house := range houses {
-			if house != nil {
-				houseArray = append(houseArray, house)
-			}
-		}
+		houseMaps[areaHouse.Area] = areaHouse.Houses
 	}
 
-	for _, house := range houseArray {
-		fmt.Println(house)
-	}
-	return houseArray, nil
+	return houseMaps, nil
 }

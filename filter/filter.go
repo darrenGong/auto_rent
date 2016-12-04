@@ -39,7 +39,8 @@ var (
 var sm sync.Mutex
 
 type Filter struct {
-	Services map[string]*Service
+	IdServices map[string]*Service	// key: Id
+
 }
 
 func (f *Filter) Run(config *fetchHouse.Config) error {
@@ -49,7 +50,18 @@ func (f *Filter) Run(config *fetchHouse.Config) error {
 	defer close(quitChan)
 
 	// filter houses
+	houses, err := fetchHouse.FetchHouse(config)
+	if err != nil {
+		uflog.ERRORF("Failed to fetch house[err:%s]", err.Error())
+	}
+	return nil
+}
 
+func (f *Filter) FilterHouses(houses *fetchHouse.House) error {
+	return nil
+}
+
+func (f *Filter) HandleHouse(house *fetchHouse.House) error {
 	return nil
 }
 
@@ -173,7 +185,11 @@ func (f *Filter) LoadService(file string) error {
 		return err
 	}
 
-	if _, ok := f.Services[service.Id]; !ok {
+	sm.Lock()
+	_, ok := f.IdServices[service.Id]
+	sm.Unlock()
+
+	if !ok {
 		f.OnServiceCreate(&service)
 		uflog.INFOF("No exist service[%s], create it now", service.Id)
 	} else {
@@ -188,7 +204,7 @@ func (f *Filter) OnServiceCreate(service *Service) error {
 	sm.Lock()
 	defer sm.Unlock()
 
-	f.Services[service.Id] = service
+	f.IdServices[service.Id] = service
 	return nil
 }
 
@@ -196,7 +212,7 @@ func (f *Filter) OnServiceRemove(service *Service) error {
 	sm.Lock()
 	defer sm.Unlock()
 
-	delete(f.Services, service.Id)
+	delete(f.IdServices, service.Id)
 	return nil
 }
 
@@ -204,7 +220,7 @@ func (f *Filter) OnServiceChange(service *Service) error {
 	sm.Lock()
 	defer sm.Unlock()
 
-	f.Services[service.Id] = service
+	f.IdServices[service.Id] = service
 	return nil
 }
 
