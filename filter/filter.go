@@ -9,10 +9,7 @@ import (
 	"sync"
 	"github.com/fsnotify/fsnotify"
 	"auto_rent/fetch_house"
-	"forward_port/config"
 	"fmt"
-	"strconv"
-	"time"
 )
 
 type SimpleHouse struct {
