@@ -10,8 +10,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"auto_rent/fetch_house"
 	"fmt"
-	"strconv"
-	"time"
 )
 
 type SimpleHouse struct {
