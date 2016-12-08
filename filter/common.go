@@ -20,14 +20,14 @@ func GetPlatInterface(platType string, service *Service) (HouseFilter, error) {
 			Type:    		service.Type,
 			Orientation: 	service.Orientation,
 			Way: 			service.Way,
-		}
+		}, nil
 	case fetchHouse.CITY58PLAT:
 		return City58Filter{
 			Price: 			service.Price,
 			Type: 			service.Type,
 			Orientation: 	service.Orientation,
 			Way: 			service.Way,
-		}
+		}, nil
 	}
 
 	return nil, errors.New("Unkown plat type")
@@ -42,7 +42,7 @@ func SetBIT(val *uint32, bit uint8) error {
 	return nil
 }
 
-func UnSetBIT(val *uint32, bit uint8) {
+func UnSetBIT(val *uint32, bit uint8) error {
 	if 0 == bit || bit >= 32 {
 		return errors.New("Out max bit number")
 	}

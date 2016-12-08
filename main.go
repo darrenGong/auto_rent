@@ -3,7 +3,6 @@ package main
 import (
 	"auto_rent/fetch_house"
 	"flag"
-	"fmt"
 	"log"
 	"auto_rent/filter"
 )
@@ -24,5 +23,5 @@ func main() {
 		IdServices: make(map[string]*filter.Service),
 		AreaServices: make(map[string]map[string]*filter.Service),
 	}
-	Filter.Run(Config)
+	Filter.Run(&Config)
 }
