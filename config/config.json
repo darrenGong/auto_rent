@@ -9,5 +9,6 @@
       "AreaUrl": "http://%s.58.com/zufang/"
     }
   },
-  "ServiceDir": "F:\\go-dev\\src\\auto_rent\\etc\\"
+  "ServiceDir": "F:\\go-dev\\src\\auto_rent\\etc\\",
+  "FetchDuration" : 600
 }

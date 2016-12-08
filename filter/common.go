@@ -6,10 +6,10 @@ import (
 )
 
 type HouseFilter interface {
-	ValidPrice(house *fetchHouse.House, price uint32) bool
-	ValidType(house *fetchHouse.House, houseType uint32) bool
-	ValidOrientation(house *fetchHouse.House, orientation uint32) bool
-	ValidWay(house *fetchHouse.House, way uint32) bool
+	ValidPrice(house *fetchHouse.House) bool
+	ValidType(house *fetchHouse.House) bool
+	ValidOrientation(house *fetchHouse.House) bool
+	ValidWay(house *fetchHouse.House) bool
 }
 
 func GetPlatInterface(platType string, service *Service) (HouseFilter, error) {
@@ -31,4 +31,22 @@ func GetPlatInterface(platType string, service *Service) (HouseFilter, error) {
 	}
 
 	return nil, errors.New("Unkown plat type")
+}
+
+func SetBIT(val *uint32, bit uint8) error {
+	if bit > 31 {
+		return errors.New("Out max bit number")
+	}
+
+	*val |= 1 << bit
+	return nil
+}
+
+func UnSetBIT(val *uint32, bit uint8) {
+	if 0 == bit || bit >= 32 {
+		return errors.New("Out max bit number")
+	}
+
+	*val |= 0 << bit
+	return nil
 }

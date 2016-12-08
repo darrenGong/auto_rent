@@ -8,9 +8,9 @@
   "area": "minhang",
   "community": "dongyuanxintiandi",
   "house": {
-    "price": 3,
-    "type": 2,
-    "orientation": 1,
-    "way": 0
+    "price": "p1",
+    "type": "h1",
+    "orientation": "j1",
+    "way": "m1"
   }
 }

@@ -12,13 +12,14 @@ import (
 	"forward_port/config"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type SimpleHouse struct {
-	Price       uint32 // 价格范围
-	Type        uint32 // 3室一厅
-	Orientation uint32 // 朝向
-	Way         uint32 // 整租
+	Price       string // 价格范围
+	Type        string // 3室一厅
+	Orientation string // 朝向
+	Way         string // 整租
 }
 
 type Service struct {
@@ -52,14 +53,22 @@ func (f *Filter) Run(config *fetchHouse.Config) error {
 	defer close(quitChan)
 
 	// filter houses
-	areaHouseMap, err := fetchHouse.FetchHouse(config)
-	if err != nil {
+	for {
+		areaHouseMap, err := fetchHouse.FetchHouse(config)
+		if err != nil {
 		uflog.ERRORF("Failed to fetch house[err:%s]", err.Error())
+		}
+		f.HandleService(areaHouseMap)
+		time.Sleep(config.FetchDuration * time.Second)
 	}
+
 	return nil
 }
 
 func (f *Filter) HandleService(areaHouseMap map[string][]*fetchHouse.House) error {
+	sm.Lock()
+	defer sm.Unlock()
+
 	for area, serviceMap := range f.AreaServices {
 		houses := areaHouseMap[area]
 		if houses == nil {
@@ -248,19 +257,20 @@ func (f *Filter) IsValidFilePath(fPath string) bool {
 
 func AnalysisData(idServiceMap map[string]*Service, houses []*fetchHouse.House) error {
 	for _, service := range idServiceMap {
-		housesFormat, err := GetValidHouse(service, houses)
+		housesMap, err := GetValidHouse(service, houses)
 		if err != nil {
 			uflog.ERRORF("Failed to get valid house[err:%s]", err)
 			continue
 		}
 
 		// send data to target
-		SendHouseToTarget(service, housesFormat)
+		SendHouseToTarget(service, housesMap)
 	}
 	return nil
 }
 
-func GetValidHouse(service *Service, houses []*fetchHouse.House) ([]string, error) {
+func GetValidHouse(service *Service, houses []*fetchHouse.House) (*map[string]string, error) {
+	housesMap := make(map[string]string)
 	for _, house := range houses {
 		houseFilter, err := GetPlatInterface(house.PlatType, service)
 		if err != nil {
@@ -268,26 +278,66 @@ func GetValidHouse(service *Service, houses []*fetchHouse.House) ([]string, erro
 				err.Error(), house.PlatType)
 			continue
 		}
+		status := GetMatchStatus(house)
+		matchStatus := FilterMatchStatus(houseFilter, house)
+		if status == matchStatus {
+			uflog.INFOF("Successful match[service:%v, house:%v]", *house, *service)
 
-		bValidPrice := houseFilter.ValidPrice(house, service.Price)
-		if !bValidPrice {
-			continue
+			houseString := fmt.Sprintf("Congratulations! The following house:\n%s|%s|%s|%s|%s|%s|%s",
+				house.Url, house.Name, house.Location, house.Price, house.Way, house.HouseType, house.Orientation)
+
+			housesMap[house.Id] = houseString
 		}
-
-		bValidType := houseFilter.ValidType(house, service.Type)
-		if !bValidType {
-			continue
-		}
-
-
-
 	}
-	return nil, nil
+	return &housesMap, nil
 }
 
-func SendHouseToTarget(service *Service, houses []string) error {
-	for _, houseFormat := range houses {
+func SendHouseToTarget(service *Service, houseMap *map[string]string) error {
+	for _, houseFormat := range *houseMap {
 		fmt.Println("Have match data[%s]", houseFormat)
 	}
 	return nil
+}
+
+func GetMatchStatus(house *fetchHouse.House) uint32 {
+	matchStatus := 0
+	if house.Price {
+		matchStatus |= 1 << 0
+	}
+
+	if house.HouseType {
+		matchStatus |= 1 << 1
+	}
+
+	if house.Way {
+		matchStatus |= 1 << 2
+	}
+
+	if house.Orientation {
+		matchStatus |= 1 << 3
+	}
+
+	return matchStatus
+}
+
+func FilterMatchStatus(houseFilter HouseFilter, house *fetchHouse.House) uint32 {
+	var matchStatus = 0
+
+	if bValidPrice := houseFilter.ValidPrice(house); bValidPrice {
+		SetBIT(&matchStatus, 1)
+	}
+
+	if bValidType := houseFilter.ValidType(house); bValidType {
+		SetBIT(&matchStatus, 2)
+	}
+
+	if bValidWay := houseFilter.ValidWay(house); bValidWay {
+		SetBIT(&matchStatus, 3)
+	}
+
+	if bValidOrientation := houseFilter.ValidOrientation(house); bValidOrientation {
+		SetBIT(&matchStatus, 4)
+	}
+
+	return matchStatus
 }

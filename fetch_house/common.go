@@ -16,9 +16,9 @@ var (
 )
 
 const (
-	ALLRENT = iota    	//整租
-	TOGETHERRENT    	//合租
-	SHORTRENT        	//短租
+	ALLRENT = iota        //整租
+	TOGETHERRENT        //合租
+	SHORTRENT            //短租
 )
 
 const (
@@ -53,7 +53,7 @@ type House struct {
 	Orientation string // 朝向
 	Way         string // 整租
 
-	PlatType 	string
+	PlatType    string
 }
 
 type AreaHouses struct {
@@ -62,17 +62,17 @@ type AreaHouses struct {
 }
 
 type HouseInterface interface {
-	GetHouse(chanAreaHouse chan<- *AreaHouses) error
+	GetHouse(chanAreaHouse chan <- *AreaHouses) error
 }
 
 func GetHouseInterface(platType string, webUrl *WebUrl) (HouseInterface, error) {
 	switch platType {
 	case GJPLAT:
 		return GJHouse{Url: webUrl.Url,
-						AreaUrl: webUrl.AreaUrl}, nil
+			AreaUrl: webUrl.AreaUrl}, nil
 	case CITY58PLAT:
 		return CITY58House{Url: webUrl.Url,
-						AreaUrl: webUrl.AreaUrl}, nil
+			AreaUrl: webUrl.AreaUrl}, nil
 	}
 
 	return nil, errors.New("Invalid plat type: " + platType)
