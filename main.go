@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"auto_rent/filter"
 )
 
 var (
@@ -18,11 +19,10 @@ func main() {
 	if err := fetchHouse.ParseConfig(*configPath, &Config); err != nil {
 		log.Fatalf("Failed to parse config[%s]", *configPath)
 	}
-	houseMaps, _ := fetchHouse.FetchHouse(&Config)
-	for area, houses := range houseMaps {
-		fmt.Println(area)
-		for _, house := range houses {
-			fmt.Println(house)
-		}
+
+	Filter := filter.Filter{
+		IdServices: make(map[string]*filter.Service),
+		AreaServices: make(map[string]map[string]*filter.Service),
 	}
+	Filter.Run(Config)
 }
