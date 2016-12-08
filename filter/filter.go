@@ -111,11 +111,11 @@ func (f *Filter) watcherService(dirPath string, quitChan <-chan struct{}) {
 
 func (f *Filter) handleFileChange(event fsnotify.Event) error {
 	var err error
-	if event & fsnotify.Create == fsnotify.Create {
+	if event.Op & fsnotify.Create == fsnotify.Create {
 		err = f.newServiceCreate(event.Name)
-	} else if event & fsnotify.Remove == fsnotify.Remove {
+	} else if event.Op & fsnotify.Remove == fsnotify.Remove {
 		err = f.oldServiceRemove(event.Name)
-	} else if event & fsnotify.Write == fsnotify.Write {
+	} else if event.Op & fsnotify.Write == fsnotify.Write {
 		err = f.oldServiceChange(event.Name)
 	}
 
@@ -276,7 +276,7 @@ func GetValidHouse(service *Service, houses []*fetchHouse.House) (*map[string]st
 				err.Error(), house.PlatType)
 			continue
 		}
-		status := GetMatchStatus(house)
+		status := GetMatchStatus(service)
 		matchStatus := FilterMatchStatus(houseFilter, house)
 		if status == matchStatus {
 			uflog.INFOF("Successful match[service:%v, house:%v]", *house, *service)
@@ -297,21 +297,21 @@ func SendHouseToTarget(service *Service, houseMap *map[string]string) error {
 	return nil
 }
 
-func GetMatchStatus(house *fetchHouse.House) uint32 {
-	matchStatus := 0
-	if house.Price {
+func GetMatchStatus(service *Service) uint32 {
+	matchStatus := uint32(0)
+	if service.Price != "" {
 		matchStatus |= 1 << 0
 	}
 
-	if house.HouseType {
+	if service.Type != ""  {
 		matchStatus |= 1 << 1
 	}
 
-	if house.Way {
+	if service.Way != ""  {
 		matchStatus |= 1 << 2
 	}
 
-	if house.Orientation {
+	if service.Orientation != ""  {
 		matchStatus |= 1 << 3
 	}
 
@@ -319,7 +319,7 @@ func GetMatchStatus(house *fetchHouse.House) uint32 {
 }
 
 func FilterMatchStatus(houseFilter HouseFilter, house *fetchHouse.House) uint32 {
-	var matchStatus = 0
+	var matchStatus = uint32(0)
 
 	if bValidPrice := houseFilter.ValidPrice(house); bValidPrice {
 		SetBIT(&matchStatus, 1)

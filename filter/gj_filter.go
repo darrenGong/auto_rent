@@ -8,7 +8,7 @@ import (
 	logger "github.com/Sirupsen/logrus"
 )
 
-const (
+var (
 	houseTypeMap = map[uint32]string{
 		1: "h1",
 		2: "h2",
@@ -17,7 +17,7 @@ const (
 		5: "h5",
 		6: "h6",
 	}
-	MAXTYPE = len(houseTypeMap)
+	MAXTYPE = uint32(6)
 )
 
 type GJFilter struct {
@@ -27,7 +27,7 @@ type GJFilter struct {
 	Way         string
 }
 
-func (gj *GJFilter)GetPriceType(price uint32) string {
+func (gj GJFilter)GetPriceType(price uint32) string {
 	switch {
 	case 800 <= price && price <= 1500:
 		return "p2"
@@ -48,15 +48,15 @@ func (gj *GJFilter)GetPriceType(price uint32) string {
 	return "p1"    //800以下
 }
 
-func (gj *GJFilter) ValidPrice(house *fetchHouse.House) bool {
+func (gj GJFilter) ValidPrice(house *fetchHouse.House) bool {
 	strHousePrice := strings.TrimRight(house.Price, "元/月")
-	housePrice, err := strconv.ParseUint(strHousePrice, 10, 32)
+	housePrice64, err := strconv.ParseUint(strHousePrice, 10, 32)
 	if err != nil {
 		logger.WithField("Filter", "House").Errorf("Failed to parse price[Id:%s, err:%s]",
 			house.Id, err.Error())
 		return false
 	}
-	housePrice = uint32(housePrice)
+	housePrice := uint32(housePrice64)
 	priceType := gj.GetPriceType(housePrice)
 	if priceType == gj.Price {
 		logger.WithField("Filter", "House").Infof("Successful match to price[sourcePrice:%s, targetPrice:%s]",
@@ -67,7 +67,7 @@ func (gj *GJFilter) ValidPrice(house *fetchHouse.House) bool {
 	return false
 }
 
-func (gj *GJFilter) GetHouseType(uPrefixType uint32) string {
+func (gj GJFilter) GetHouseType(uPrefixType uint32) string {
 
 	houseType, ok := houseTypeMap[uPrefixType]
 	if !ok {
@@ -78,7 +78,7 @@ func (gj *GJFilter) GetHouseType(uPrefixType uint32) string {
 	return houseType
 }
 
-func (gj *GJFilter) ValidType(house *fetchHouse.House) bool {
+func (gj GJFilter) ValidType(house *fetchHouse.House) bool {
 	if "" == house.HouseType {
 		logger.WithField("Filter", "House").Error("HouseType is equal at empty")
 		return false
@@ -89,12 +89,12 @@ func (gj *GJFilter) ValidType(house *fetchHouse.House) bool {
 		return false
 	}
 
-	uPrefixType, err := strconv.ParseUint(preFixHouses[0], 10, 32)
+	uPrefixType64, err := strconv.ParseUint(preFixHouses[0], 10, 32)
 	if err != nil {
 		logger.WithField("Filter", "House").Errorf("Failed to parse prefix house type[%s]", preFixHouses[0])
 		return false
 	}
-	uPrefixType = uint32(uPrefixType)
+	uPrefixType := uint32(uPrefixType64)
 	houseType := gj.GetHouseType(uPrefixType)
 	if houseType == gj.Type {
 		logger.WithField("Filter", "House").Infof("Successful match to house type[sourceType:%s, targetType:%s]",
@@ -105,7 +105,7 @@ func (gj *GJFilter) ValidType(house *fetchHouse.House) bool {
 	return false
 }
 
-func (gj *GJFilter) GetOrientation(orientation string) string {
+func (gj GJFilter) GetOrientation(orientation string) string {
 	switch orientation {
 	case "南向":    //south
 		return "j2"
@@ -121,7 +121,7 @@ func (gj *GJFilter) GetOrientation(orientation string) string {
 	return "j1"    //1 east
 }
 
-func (gj *GJFilter) ValidOrientation(house *fetchHouse.House) bool {
+func (gj GJFilter) ValidOrientation(house *fetchHouse.House) bool {
 	houseOrientation := gj.GetOrientation(house.Orientation)
 	if houseOrientation == gj.Orientation {
 		logger.WithField("Filter", "House").Infof("Successful match to orientation[sourceOri:%s, targetOri:%s]",
@@ -131,7 +131,7 @@ func (gj *GJFilter) ValidOrientation(house *fetchHouse.House) bool {
 	return false
 }
 
-func (gj *GJFilter) GetRentWay(way string) string {
+func (gj GJFilter) GetRentWay(way string) string {
 	switch way {
 	case "合租":    //合租
 		return "a3"
@@ -139,7 +139,7 @@ func (gj *GJFilter) GetRentWay(way string) string {
 	return "m1"    //1 整租
 }
 
-func (gj *GJFilter)	ValidWay(house *fetchHouse.House) bool {
+func (gj GJFilter)	ValidWay(house *fetchHouse.House) bool {
 	rentWay := gj.GetRentWay(house.Way)
 	if rentWay == gj.Way {
 		logger.WithField("Filter", "House").Infof("Successful match to rent way[sourceWay:%s, targetWay:%s]",
