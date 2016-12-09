@@ -5,11 +5,13 @@ import (
 	"path"
 	"io/ioutil"
 	"uframework/log"
-	"encoding/json"
 	"sync"
 	"github.com/fsnotify/fsnotify"
 	"auto_rent/fetch_house"
 	"fmt"
+	"errors"
+
+	logger "github.com/Sirupsen/logrus"
 )
 
 type SimpleHouse struct {
@@ -41,6 +43,14 @@ var sm sync.Mutex
 type Filter struct {
 	IdServices   map[string]*Service            // key: Id
 	AreaServices map[string]map[string]*Service // key: Area subKey: Id
+}
+
+func (f *Filter) Print() {
+	for area, idMap := range f.AreaServices {
+		for _, service := range idMap {
+			fmt.Printf("AreaLen:%d, IdLen:%d, %s: %v\n", len(f.AreaServices), len(idMap), area, *service)
+		}
+	}
 }
 
 func (f *Filter) Run(config *fetchHouse.Config) error {
@@ -110,6 +120,7 @@ func (f *Filter) watcherService(dirPath string, quitChan <-chan struct{}) {
 }
 
 func (f *Filter) handleFileChange(event fsnotify.Event) error {
+	logger.WithField("service", "parse").Infof("received an watcher event[%v]", event)
 	var err error
 	if event.Op & fsnotify.Create == fsnotify.Create {
 		err = f.newServiceCreate(event.Name)
@@ -153,7 +164,7 @@ func (f *Filter) oldServiceRemove(file string) error {
 	var err error
 	if f.IsValidFilePath(file) {
 		uflog.INFOF("Remove old file[%s]", file)
-		err = f.LoadService(file)
+		err = f.RemoveService(file)
 	} else {
 		uflog.WARNF("Invalid file[%s], ignore it", file)
 	}
@@ -187,16 +198,9 @@ func (f *Filter) OnScanServiceDir(dirPath string) error {
 }
 
 func (f *Filter) LoadService(file string) error {
-	bytes, err := ioutil.ReadFile(file)
+	service, err := UnmarshalFile(file)
 	if err != nil {
-		uflog.ERRORF("Failed to read file[%s]", file)
-		return err
-	}
-	uflog.INFOF("Read %s bytes from %s", len(bytes), file)
-
-	var service Service
-	if err := json.Unmarshal(bytes, &service); err != nil {
-		uflog.ERRORF("Failed to unmarshal file[%s]", file)
+		logger.WithField("service", "parse").Errorf("Failed to unmarshal[file:%s, err:%v]", file, err)
 		return err
 	}
 
@@ -205,12 +209,26 @@ func (f *Filter) LoadService(file string) error {
 	sm.Unlock()
 
 	if !ok {
-		f.OnServiceCreate(&service)
+		f.OnServiceCreate(service)
 		uflog.INFOF("No exist service[%s], create it now", service.Id)
 	} else {
-		f.OnServiceChange(&service)
+		f.OnServiceChange(service)
 		uflog.INFOF("Exist service[%s], update it now", service.Id)
 	}
+
+	return nil
+}
+
+func (f *Filter) RemoveService(file string) error {
+	if !f.IsValidFilePath(file) {
+		logger.WithField("service", "parse").Errorf("Invalid file[%s]", file)
+		return errors.New("Invalid file")
+	}
+	fName := path.Base(file)
+	prefixName := strings.TrimRight(fName, FSuffix)
+
+	logger.WithField("service", "parse").Infof("Successful remove service[file:%s]", fName)
+	f.OnServiceRemove(prefixName)
 
 	return nil
 }
@@ -220,16 +238,29 @@ func (f *Filter) OnServiceCreate(service *Service) error {
 	defer sm.Unlock()
 
 	f.IdServices[service.Id] = service
-	f.AreaServices[service.Area] = f.IdServices
+	if _, ok := f.AreaServices[service.Area]; !ok {
+		f.AreaServices[service.Area] = make(map[string]*Service)
+	}
+	f.AreaServices[service.Area][service.Id] = service
+
+	f.Print()
 	return nil
 }
 
-func (f *Filter) OnServiceRemove(service *Service) error {
+func (f *Filter) OnServiceRemove(id string) error {
 	sm.Lock()
 	defer sm.Unlock()
 
-	delete(f.IdServices, service.Id)
-	delete(f.AreaServices[service.Area], service.Id)
+	service, ok := f.IdServices[id]
+	if !ok {
+		logger.WithField("service", "parse").Errorf("Failed to find service[%d] when remove service", id)
+		return errors.New("Failed to remove service")
+	}
+
+	delete(f.AreaServices[service.Area], id)
+	delete(f.IdServices, id)
+
+	f.Print()
 	return nil
 }
 
@@ -238,7 +269,9 @@ func (f *Filter) OnServiceChange(service *Service) error {
 	defer sm.Unlock()
 
 	f.IdServices[service.Id] = service
-	f.AreaServices[service.Area] = f.IdServices
+	f.AreaServices[service.Area][service.Id] = service
+
+	f.Print()
 	return nil
 }
 
