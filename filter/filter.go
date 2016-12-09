@@ -12,6 +12,7 @@ import (
 	"errors"
 
 	logger "github.com/Sirupsen/logrus"
+	"time"
 )
 
 type SimpleHouse struct {
@@ -60,14 +61,14 @@ func (f *Filter) Run(config *fetchHouse.Config) error {
 	defer close(quitChan)
 
 	// filter houses
-	/*for {
+	for {
 		areaHouseMap, err := fetchHouse.FetchHouse(config)
 		if err != nil {
 		uflog.ERRORF("Failed to fetch house[err:%s]", err.Error())
 		}
 		f.HandleService(areaHouseMap)
 		time.Sleep(config.FetchDuration * time.Second)
-	}*/
+	}
 
 	<- quitChan
 	return nil
