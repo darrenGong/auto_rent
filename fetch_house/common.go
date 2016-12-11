@@ -7,6 +7,8 @@ import (
 	"auto_rent/http_request"
 	"errors"
 	"strings"
+
+	logger "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -24,6 +26,13 @@ const (
 const (
 	GJPLAT = "GJ"            //赶集
 	CITY58PLAT = "58CITY"        //58同城
+)
+
+var (
+	PopularCityMap = map[string]int{
+		"sh": 300,
+		"bj": 300,
+	}
 )
 
 type Price struct {
@@ -56,9 +65,23 @@ type House struct {
 	PlatType    string
 }
 
+func (h House)Init() {
+	h.Id = ""
+    h.DataTime = ""
+    h.HasImage = false
+    h.Name = ""
+    h.Price = ""
+    h.Url = ""
+    h.Location = ""
+    h.HouseType = ""
+    h.Orientation = ""
+    h.Way = ""
+    h.PlatType = ""
+}
+
 type AreaHouses struct {
-	Area   string
-	Houses []*House
+	City   string
+	AreaHouses map[string][]*House
 }
 
 type HouseInterface interface {
@@ -111,7 +134,7 @@ func GetValidUrl(url string) string {
 	return url
 }
 
-func GetUrlArea(url string) string {
+func GetUrlCity(url string) string {
 	url = GetValidUrl(url)
 	urls := strings.Split(url, ".")
 	if len(urls) != 3 {
@@ -126,4 +149,15 @@ func GetUrlArea(url string) string {
 	}
 
 	return preUrls[1]
+}
+
+func GetFetchNum(area string, maxNum int) int {
+	if _, ok := PopularCityMap[area]; !ok {
+		return maxNum
+	}
+
+	maxNum = PopularCityMap[area]
+	logger.WithField("fetch", "house").Infof("%s is popular city, fetch num[%d]", area, maxNum)
+
+	return maxNum
 }

@@ -64,6 +64,9 @@ func (gj GJFilter) ValidPrice(house *fetchHouse.House) bool {
 		return true
 	}
 
+	logger.WithField("Filter", "House").Debugf("Failed to match price[sourcePrice:%s, targetPrice:%s]",
+		priceType, gj.Price)
+
 	return false
 }
 
@@ -102,6 +105,9 @@ func (gj GJFilter) ValidType(house *fetchHouse.House) bool {
 		return true
 	}
 
+	logger.WithField("Filter", "House").Debugf("Failed to match on house type[sourceType:%s, targetType:%s]",
+		houseType, gj.Type)
+
 	return false
 }
 
@@ -128,6 +134,9 @@ func (gj GJFilter) ValidOrientation(house *fetchHouse.House) bool {
 			house.Orientation, gj.Orientation)
 		return true
 	}
+
+	logger.WithField("Filter", "House").Debugf("Failed to match on orientation[sourceOri:%s, targetOri:%s]",
+		houseOrientation, gj.Orientation)
 	return false
 }
 
@@ -147,5 +156,7 @@ func (gj GJFilter)	ValidWay(house *fetchHouse.House) bool {
 		return true
 	}
 
+	logger.WithField("Filter", "House").Debugf("Failed to match on rent way[sourceWay:%s, targetWay:%s]",
+		rentWay, gj.Way)
 	return false
 }

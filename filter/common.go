@@ -38,11 +38,11 @@ func GetPlatInterface(platType string, service *Service) (HouseFilter, error) {
 }
 
 func SetBIT(val *uint32, bit uint8) error {
-	if bit > 31 {
+	if 0 == bit || bit > 32 {
 		return errors.New("Out max bit number")
 	}
 
-	*val |= 1 << bit
+	*val |= 1 << (bit - 1)
 	return nil
 }
 

@@ -6,7 +6,8 @@ import (
 	"time"
 	"uframework/log"
 	//	"time"
-	"fmt"
+
+	logger "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -25,8 +26,12 @@ func (gj GJHouse) GetHouse(chanAreaHouse chan<- *AreaHouses) error {
 		uflog.ERRORF("Failed to get all city[url:%s]", gj.Url)
 		return errors.New("Failed to get all city")
 	}
-
-	fmt.Println(*cityMap)
+	logger.WithField("fetch", "house").Debug(*cityMap)
+/*
+	cityMap := map[string]string{
+		"sh": "http://sh.ganji.com/",
+	}
+*/
 	chanHouse := make(chan *AreaHouses)
 	for _, url := range *cityMap {
 		go gj.GetAreaHouse(url+TypeUrl, chanHouse)
@@ -57,14 +62,23 @@ func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
 	}
 
 	areaHouse := &AreaHouses{
-		Area: GetUrlArea(url),
-		Houses: make([]*House, 0),
+		City: GetUrlCity(url),
+		AreaHouses: make(map[string][]*House),
 	}
 
+	if "" == areaHouse.City {
+		logger.WithField("fetch", "house").Errorf("Failed to get url area[url:%s]", url)
+		chanAreaHouse <- nil
+		return
+	}
+	fetchNum := GetFetchNum(areaHouse.City, MaxNum)
+
+	goHeavyMap := make(map[string]bool)
 	childNodes := nodes.Find("div")
 	childNodes = childNodes.Find(".f-list-item dl")
-	for i := 0; i < childNodes.Length() && i < MaxNum; i++ {
+	for i := 0; i < childNodes.Length() && i < fetchNum; i++ {
 		house := new(House)
+		house.Init()
 		house.PlatType = GJPLAT
 
 		divNodes := childNodes.Eq(i)
@@ -91,14 +105,11 @@ func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
 		ddNodes = divNodes.Find(".address")
 		spanNodes = ddNodes.Find("span")
 		aNodes = spanNodes.Find("a")
+		house.Location = aNodes.Eq(0).Text()
+		if aNodes.Eq(2).Text() != "" {
+			house.Location += "|" + aNodes.Eq(2).Text()
+		}
 		locationList := strings.Split(aNodes.Eq(0).Attr("href"), "/")
-		if len(locationList) >= 3 {
-			house.Location = locationList[2] + "|"
-		}
-		communityList := strings.Split(aNodes.Eq(2).Attr("href"), "/")
-		if len(communityList) >= 3 {
-			house.Location += communityList[2]
-		}
 
 		ddNodes = divNodes.Find(".info")
 		priceNodes := ddNodes.Find(".price")
@@ -106,7 +117,16 @@ func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
 		hourNodes := ddNodes.Find(".time")
 		house.DataTime = hourNodes.Text()
 
-		areaHouse.Houses = append(areaHouse.Houses, house)
+		if _, ok := goHeavyMap[house.Id]; !ok {
+			if len(locationList) >= 3 {
+				areaHouse.AreaHouses[locationList[2]] = append(areaHouse.AreaHouses[locationList[2]], house)
+			} else {
+				areaHouse.AreaHouses[""] = append(areaHouse.AreaHouses[""], house)
+			}
+			goHeavyMap[house.Id] = true
+		} else {
+			fetchNum += 1
+		}
 	}
 
 	chanAreaHouse <- areaHouse

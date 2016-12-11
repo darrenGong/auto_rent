@@ -4,11 +4,8 @@ import (
 	"uframework/log"
 )
 
-var (
-	chanAreaHouse = make(chan *AreaHouses)
-)
-
-func FetchHouse(Config *Config) (map[string][]*House, error) {
+func FetchHouse(Config *Config) (map[string]map[string][]*House, error) {
+	chanAreaHouse := make(chan *AreaHouses)
 	for key, value := range Config.PlatUrl {
 		houseInterface, err := GetHouseInterface(key, &value)
 		if err != nil {
@@ -18,14 +15,14 @@ func FetchHouse(Config *Config) (map[string][]*House, error) {
 		go houseInterface.GetHouse(chanAreaHouse)
 	}
 
-	houseMaps := make(map[string][]*House)
+	houseMaps := make(map[string]map[string][]*House)
 	for {
 		areaHouse, ok := <-chanAreaHouse
 		if !ok {
 			uflog.WARN("All cities data have got")
 			break
 		}
-		houseMaps[areaHouse.Area] = areaHouse.Houses
+		houseMaps[areaHouse.City] = areaHouse.AreaHouses
 	}
 
 	return houseMaps, nil

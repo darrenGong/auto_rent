@@ -15,7 +15,7 @@ type WebUrl struct {
 type Config struct {
 	PlatUrl       map[string]WebUrl
 	ServiceDir    string
-	FetchDuration uint32
+	FetchDuration int64
 }
 
 func ParseConfig(path string, config *Config) error {
