@@ -5,6 +5,6 @@ type CITY58House struct {
 	AreaUrl string
 }
 
-func (city58 CITY58House) GetHouse(chanHouse chan <- []*House) error {
+func (city58 CITY58House) GetHouse(chanAreaHouse chan <- *AreaHouses) error {
 	return nil
 }

@@ -1,16 +1,18 @@
 package fetchHouse
 
 import (
-	"uframework/log"
 	"errors"
 	"strings"
-	"fmt"
+	"time"
+	"uframework/log"
 	//	"time"
+
+	logger "github.com/Sirupsen/logrus"
 )
 
 var (
 	TypeUrl = "fang1/"
-	MaxNum = 20
+	MaxNum  = 20
 )
 
 type GJHouse struct {
@@ -18,49 +20,66 @@ type GJHouse struct {
 	AreaUrl string
 }
 
-func (gj GJHouse) GetHouse(chanHouse chan <- []*House) error {
+func (gj GJHouse) GetHouse(chanAreaHouse chan<- *AreaHouses) error {
 	cityMap, err := GetAllSite(gj.Url)
 	if err != nil {
 		uflog.ERRORF("Failed to get all city[url:%s]", gj.Url)
 		return errors.New("Failed to get all city")
 	}
-
-	chanHouses := make(chan []*House)
-	chanUrl := make(chan string)
-	go gj.RoutineAreaHouse(chanUrl, chanHouses)
+	logger.WithField("fetch", "house").Debug(*cityMap)
+/*
+	cityMap := map[string]string{
+		"sh": "http://sh.ganji.com/",
+	}
+*/
+	chanHouse := make(chan *AreaHouses)
 	for _, url := range *cityMap {
-		chanUrl <- url
-		houses, ok := <-chanHouses
-		if ok && houses != nil {
-			chanHouse <- houses
+		go gj.GetAreaHouse(url+TypeUrl, chanHouse)
+	}
+
+	for _, url := range *cityMap {
+		select {
+		case areaHouse := <-chanHouse:
+			if areaHouse != nil {
+				chanAreaHouse <- areaHouse
+			}
+		case <-time.After(30 * time.Second):
+			uflog.ERRORF("Get url:%s area timeout", url)
 		}
 	}
 
-	close(chanHouse)
+	close(chanAreaHouse)
 	return nil
 }
 
-func (gj GJHouse) RoutineAreaHouse(chanUrl <-chan string, chanHouses chan <- []*House) {
-	for {
-		url := <-chanUrl
-
-		gj.GetAreaHouse(url, chanHouses)
-	}
-}
-
-func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
-	fmt.Printf("Start url: %s\n", url)
+func (gj GJHouse) GetAreaHouse(url string, chanAreaHouse chan<- *AreaHouses) {
+	uflog.DEBUGF("Start url: %s\n", url)
 	nodes, err := ApiGet(url)
 	if err != nil {
 		uflog.ERRORF("Failed to get area house[url:%s]", url)
-		chanHouses <- nil
+		chanAreaHouse <- nil
 		return
 	}
+
+	areaHouse := &AreaHouses{
+		City: GetUrlCity(url),
+		AreaHouses: make(map[string][]*House),
+	}
+
+	if "" == areaHouse.City {
+		logger.WithField("fetch", "house").Errorf("Failed to get url area[url:%s]", url)
+		chanAreaHouse <- nil
+		return
+	}
+	fetchNum := GetFetchNum(areaHouse.City, MaxNum)
+
+	goHeavyMap := make(map[string]bool)
 	childNodes := nodes.Find("div")
 	childNodes = childNodes.Find(".f-list-item dl")
-	houses := make([]*House, MaxNum)
-	for i := 0; i < childNodes.Length() && i < MaxNum; i++ {
+	for i := 0; i < childNodes.Length() && i < fetchNum; i++ {
 		house := new(House)
+		house.Init()
+		house.PlatType = GJPLAT
 
 		divNodes := childNodes.Eq(i)
 		dtNodes := divNodes.Find("dt")
@@ -86,7 +105,11 @@ func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
 		ddNodes = divNodes.Find(".address")
 		spanNodes = ddNodes.Find("span")
 		aNodes = spanNodes.Find("a")
-		house.Location = aNodes.Eq(0).Text() + "|" + aNodes.Eq(2).Text()
+		house.Location = aNodes.Eq(0).Text()
+		if aNodes.Eq(2).Text() != "" {
+			house.Location += "|" + aNodes.Eq(2).Text()
+		}
+		locationList := strings.Split(aNodes.Eq(0).Attr("href"), "/")
 
 		ddNodes = divNodes.Find(".info")
 		priceNodes := ddNodes.Find(".price")
@@ -94,10 +117,18 @@ func (gj GJHouse) GetAreaHouse(url string, chanHouses chan <- []*House) {
 		hourNodes := ddNodes.Find(".time")
 		house.DataTime = hourNodes.Text()
 
-		houses = append(houses, house)
+		if _, ok := goHeavyMap[house.Id]; !ok {
+			if len(locationList) >= 3 {
+				areaHouse.AreaHouses[locationList[2]] = append(areaHouse.AreaHouses[locationList[2]], house)
+			} else {
+				areaHouse.AreaHouses[""] = append(areaHouse.AreaHouses[""], house)
+			}
+			goHeavyMap[house.Id] = true
+		} else {
+			fetchNum += 1
+		}
 	}
 
-	fmt.Printf("End Url:%s\n", url)
-	chanHouses <- houses
-	fmt.Printf("Transfer Url:%s\n", url)
+	chanAreaHouse <- areaHouse
+	uflog.DEBUGF("End url:%s\n", url)
 }

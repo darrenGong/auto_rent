@@ -8,5 +8,7 @@
       "Url": "http://www.58.com/changecity.aspx",
       "AreaUrl": "http://%s.58.com/zufang/"
     }
-  }
+  },
+  "ServiceDir": "etc/",
+  "FetchDuration" : 600
 }
