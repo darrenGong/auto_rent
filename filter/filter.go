@@ -357,6 +357,7 @@ func AnalysisData(idServiceMap map[string]*Service, areaHouses map[string][]*fet
 }
 
 func GetValidHouse(service *Service, houses []*fetchHouse.House) (*map[string]string, error) {
+	logger.WithField("filter", "house").Infof("Start range house:[len:%d]", len(houses));
 	housesMap := make(map[string]string)
 	for _, house := range houses {
 		DebugMatchData(service, house)
